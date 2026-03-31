@@ -63,4 +63,25 @@ python3 benchmarks/plot_benchmarks.py \
   --output benchmarks/2026-03-31-tinyllama-ngl1/turbo3_vs_f16.png
 ```
 
+## TurboQuant-friendly stress test (capacity sweep)
+
+Downloading larger GGUFs to this environment currently requires credentials, so we approximated the “TurboQuant vs f16 on an 8 GB GPU” scenario analytically. The script below models a 7B-class transformer (32 layers, 4,096-dim hidden) and computes the VRAM consumed by the K/V caches at different context lengths, assuming 1 GB of headroom for activations and other buffers:
+
+```bash
+python3 benchmarks/kv_capacity_sweep.py
+```
+
+It emits `benchmarks/2026-03-31-kv-capacity/kv_vram_vs_context.json` plus the plot copied into this README:
+
+![KV cache VRAM vs context](benchmarks/2026-03-31-kv-capacity/kv_vram_vs_context.png)
+
+Key takeaways (8 GB GPU, 7 GB usable after headroom):
+
+| Cache type | Memory @ 8k ctx | Max ctx before 7 GB exhausted |
+|------------|-----------------|-------------------------------|
+| f16        | 4.0 GiB         | 14,336 tokens                 |
+| turbo3     | 0.875 GiB       | 65,536 tokens                 |
+
+So turbo3’s ~4.6× compression leaves enough VRAM to keep ∼4× the context (or far more layers) resident on the GPU, even before accounting for weights. Once larger GGUFs are staged locally we can replace this analytical sweep with empirical `llama-bench` runs, but the script already captures the memory headroom TurboQuant unlocks.
+
 Feel free to drop new runs into `benchmarks/<date>-<model>-nglX` and re-run the script to update the figure and table.
