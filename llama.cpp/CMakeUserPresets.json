@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "cuda-gcc16",
+      "displayName": "CUDA with GCC 16 compatibility",
+      "cacheVariables": {
+        "GGML_CUDA": "ON",
+        "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
+        "CMAKE_CUDA_FLAGS": "-allow-unsupported-compiler -std=c++17"
+      }
+    }
+  ]
+}

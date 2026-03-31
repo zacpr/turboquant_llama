@@ -1,0 +1,28 @@
+.directory
+*.kate-swp
+*.swp
+.DS_Store
+__pycache__/
+
+# CMake build directories
+llama.cpp/build*/
+llama.cpp/bin/
+llama.cpp/lib/
+
+# CMake cache artifacts
+llama.cpp/CMakeCache.txt
+llama.cpp/CMakeFiles/
+llama.cpp/.cmake/
+llama.cpp/.cache/
+
+# Tool caches
+llama.cpp/.ccls-cache/
+llama.cpp/.clangd/
+llama.cpp/.vs/
+
+# Large model files
+llama.cpp/models/**/*.gguf
+llama.cpp/models/**/*.bin
+llama.cpp/models/**/*.pt
+llama.cpp/models/**/*.safetensors
+
