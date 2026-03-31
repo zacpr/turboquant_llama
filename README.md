@@ -85,3 +85,47 @@ Key takeaways (8 GB GPU, 7 GB usable after headroom):
 So turbo3’s ~4.6× compression leaves enough VRAM to keep ∼4× the context (or far more layers) resident on the GPU, even before accounting for weights. Once larger GGUFs are staged locally we can replace this analytical sweep with empirical `llama-bench` runs, but the script already captures the memory headroom TurboQuant unlocks.
 
 Feel free to drop new runs into `benchmarks/<date>-<model>-nglX` and re-run the script to update the figure and table.
+
+### Qwen2.5-7B stress test (ngl=1)
+
+To fetch the 7B GGUF locally, authenticate once:
+
+```bash
+hf auth login
+hf download bartowski/Qwen2.5-7B-Instruct-GGUF Qwen2.5-7B-Instruct-Q4_K_M.gguf \
+  --local-dir llama.cpp/models
+```
+
+With the model staged, run equal-settings prompt/generation sweeps (batch trimmed to 512×256 to fit the 8 GB card):
+
+```bash
+# Prompt (512 tokens)
+LD_LIBRARY_PATH=/usr/local/cuda/lib64 ./llama.cpp/build-gcc13/bin/llama-bench \
+  -m llama.cpp/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf \
+  -ctk turbo3 -ctv turbo3 -ngl 1 -fa 1 -p 512 -n 0 -b 512 -ub 256 -t 16 -r 5 -o jsonl \
+  > benchmarks/2026-03-31-qwen2.5-7b/turbo3.jsonl
+LD_LIBRARY_PATH=/usr/local/cuda/lib64 ./llama.cpp/build-gcc13/bin/llama-bench \
+  -m llama.cpp/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf \
+  -ctk f16 -ctv f16 -ngl 1 -fa 1 -p 512 -n 0 -b 512 -ub 256 -t 16 -r 5 -o jsonl \
+  > benchmarks/2026-03-31-qwen2.5-7b/f16.jsonl
+
+# Generation (128 tokens), append results to the same JSONL file
+LD_LIBRARY_PATH=/usr/local/cuda/lib64 ./llama.cpp/build-gcc13/bin/llama-bench ... -p 0 -n 128 ... \
+  >> benchmarks/2026-03-31-qwen2.5-7b/turbo3.jsonl
+LD_LIBRARY_PATH=/usr/local/cuda/lib64 ./llama.cpp/build-gcc13/bin/llama-bench ... -p 0 -n 128 ... \
+  >> benchmarks/2026-03-31-qwen2.5-7b/f16.jsonl
+
+python3 benchmarks/plot_benchmarks.py \
+  --data-dir benchmarks/2026-03-31-qwen2.5-7b \
+  --output benchmarks/2026-03-31-qwen2.5-7b/turbo3_vs_f16.png \
+  --title "Turbo3 vs f16 (Qwen2.5 7B, ngl=1)"
+```
+
+| Cache type | Prompt tok/s (512 tok) | Generation tok/s (128 tok) |
+|------------|------------------------|----------------------------|
+| turbo3     | 102.31                 | 7.44                       |
+| f16        | 641.61                 | 7.74                       |
+
+![Turbo3 vs f16 throughput (Qwen2.5 7B)](benchmarks/2026-03-31-qwen2.5-7b/turbo3_vs_f16.png)
+
+Prompt throughput is still CPU-bound (only one layer fits on GPU when loaded in f16), so turbo3 pays the extra FWHT/quantization cost. Decode throughput remains effectively tied while turbo3’s KV cache stays ~4.6× smaller, demonstrating the memory headroom TurboQuant unlocks on commodity 8 GB cards.

@@ -46,7 +46,7 @@ def build_dataset(data_dir: Path) -> Tuple[List[str], Dict[str, List[float]]]:
     return categories, datasets
 
 
-def plot(categories: List[str], datasets: Dict[str, List[float]], output: Path) -> None:
+def plot(categories: List[str], datasets: Dict[str, List[float]], output: Path, title: str) -> None:
     width = 0.35
     x = range(len(categories))
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -55,7 +55,7 @@ def plot(categories: List[str], datasets: Dict[str, List[float]], output: Path) 
     ax.bar([i + width / 2 for i in x], datasets["f16"], width, label="f16")
 
     ax.set_ylabel("Throughput (tokens/s)")
-    ax.set_title("TurboQuant turbo3 vs f16 (tinyllama, ngl=1)")
+    ax.set_title(title)
     ax.set_xticks(list(x))
     ax.set_xticklabels(cat.capitalize() for cat in categories)
     ax.legend()
@@ -80,10 +80,16 @@ def main() -> None:
         default=Path("benchmarks/2026-03-31-tinyllama-ngl1/turbo3_vs_f16.png"),
         help="Where to write the PNG plot",
     )
+    parser.add_argument(
+        "--title",
+        type=str,
+        default="TurboQuant turbo3 vs f16 throughput",
+        help="Plot title",
+    )
     args = parser.parse_args()
 
     categories, datasets = build_dataset(args.data_dir)
-    plot(categories, datasets, args.output)
+    plot(categories, datasets, args.output, args.title)
 
 
 if __name__ == "__main__":
