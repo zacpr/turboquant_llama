@@ -86,6 +86,20 @@ So turbo3’s ~4.6× compression leaves enough VRAM to keep ∼4× the context (
 
 Feel free to drop new runs into `benchmarks/<date>-<model>-nglX` and re-run the script to update the figure and table.
 
+### Long-context llama-bench probe
+
+Once the GPU is mostly idle we can demonstrate the same advantage empirically by forcing `llama-bench` to allocate progressively larger contexts until it runs out of VRAM. The helper script below automates that sweep for both cache types and saves the outputs under a dated directory:
+
+```bash
+# Example: probe Qwen2.5-7B on the 5070 Ti
+python3 benchmarks/ctx_probe.py \
+  --model llama.cpp/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf \
+  --prompt-tokens 4096 8192 12288 14336 16384 24576 32768 65536 \
+  --output-dir benchmarks/2026-03-31-qwen2.5-ctx-probe
+```
+
+Each run emits `<cache>-<prompt>.jsonl` (raw llama-bench stats), `<cache>-<prompt>.log` (stderr), and a `ctx_probe_results.json` summary that records the largest successful prompt length per cache along with throughput numbers. Start with `nvidia-smi` to ensure the RTX 5070 Ti has at least ~6 GiB free—this shared machine currently keeps a 5.5 GiB `llama-server` resident, so the probe aborted at 4k tokens with `failed to create context`. Once the GPU is clear, expect f16 to top out near 14k tokens while turbo3 keeps sailing past 65k, matching the analytical sweep above.
+
 ### Qwen2.5-7B stress test (ngl=1)
 
 To fetch the 7B GGUF locally, authenticate once:
